@@ -490,6 +490,18 @@ impl<'i> TokenList<'i> {
   where
     W: std::fmt::Write,
   {
+    self.to_css_inner(dest, is_custom_property, false)
+  }
+
+  fn to_css_inner<W>(
+    &self,
+    dest: &mut Printer<W>,
+    is_custom_property: bool,
+    in_image_set: bool,
+  ) -> Result<(), PrinterError>
+  where
+    W: std::fmt::Write,
+  {
     for token_or_value in self.0.iter() {
       match token_or_value {
         TokenOrValue::Color(color) => {
@@ -528,6 +540,12 @@ impl<'i> TokenList<'i> {
         }
         TokenOrValue::Time(v) => {
           v.to_css(dest)?;
+        }
+        TokenOrValue::Resolution(v) if in_image_set => {
+          // Safari only supports the x resolution unit in image-set(), see ImageSetOption::to_css.
+          let targets = std::mem::take(&mut dest.targets.current);
+          v.to_css(dest)?;
+          dest.targets.current = targets;
         }
         TokenOrValue::Resolution(v) => {
           v.to_css(dest)?;
@@ -1433,7 +1451,9 @@ impl<'i> Function<'i> {
   {
     self.name.to_css(dest)?;
     dest.write_char('(')?;
-    self.arguments.to_css(dest, is_custom_property)?;
+    let in_image_set =
+      self.name.eq_ignore_ascii_case("image-set") || self.name.eq_ignore_ascii_case("-webkit-image-set");
+    self.arguments.to_css_inner(dest, is_custom_property, in_image_set)?;
     dest.write_char(')')
   }
 

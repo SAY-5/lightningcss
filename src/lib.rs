@@ -19556,6 +19556,23 @@ mod tests {
       },
     );
 
+    prefix_test(
+      r#"
+      .foo {
+        background: image-set(url("foo.png") 1x, url(bar.png) 2x), var(--bg);
+      }
+    "#,
+      indoc! {r#"
+      .foo {
+        background: image-set(url("foo.png") 1x, url("bar.png") 2x), var(--bg);
+      }
+    "#},
+      Browsers {
+        safari: Some(14 << 16),
+        ..Browsers::default()
+      },
+    );
+
     for property in &[
       "background",
       "background-image",
